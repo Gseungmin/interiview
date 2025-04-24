@@ -18,9 +18,9 @@ class JsonService:
             print(f"Invalid JSON in input file: {input_path}")
             return None
 
-    def process_keyword(self, keyword):
+    def process_keyword(self, keyword, type):
         try:
-            response = self.interview_service.get_ai_response(keyword, 0)
+            response = self.interview_service.get_ai_response(user_message=keyword, type=type)
             return {
                 "keyword": keyword,
                 "response": response
@@ -29,10 +29,10 @@ class JsonService:
             print(f"키워드 응답 예외가 발생했습니다. '{keyword}': {str(e)}")
             return None
 
-    def process_all_keywords(self, keywords):
+    def process_all_keywords(self, keywords, type):
         responses = []
         for i, keyword in enumerate(keywords):
-            result = self.process_keyword(keyword)
+            result = self.process_keyword(keyword=keyword, type=type)
             if result:
                 responses.append(result)
         return responses
@@ -52,12 +52,13 @@ class JsonService:
         with open(output_path, 'w', encoding='utf-8') as file:
             json.dump(all_responses, file, ensure_ascii=False, indent=2)
 
-    def process_keywords(self, input_path, output_path):
+    def process_json(self, input_path, output_path, type):
         keywords = self.load_keywords(input_path)
         if not keywords:
             return
 
-        new_responses = self.process_all_keywords(keywords)
+        new_responses = self.process_all_keywords(keywords=keywords, type=type)
+        self.save_responses(new_responses, output_path)
         existing_responses = self.load_existing_responses(output_path)
         all_responses = existing_responses + new_responses
         self.save_responses(all_responses, output_path)

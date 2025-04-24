@@ -1,20 +1,19 @@
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate, FewShotChatMessagePromptTemplate
-
-from few_shot.developer_dialog import developer_examples
 from langchain_core.output_parsers import StrOutputParser
 
-from utils.prompt_util import DEVELOPER_INTERVIEW_SYSTEM_PROMPT
-
+from few_shot.interview_dialog import interview_examples
+from few_shot.problem_dialog import problem_examples
+from utils.prompt_util import PROBLEM_INTERVIEW_SYSTEM_PROMPT, INTERVIEW_SYSTEM_PROMPT
 
 class InterviewService:
     def __init__(self):
         pass
 
-    def get_llm(self, model_name: str = 'o3-mini'):
+    def get_llm(self, model_name: str = 'o4-mini'):
         return ChatOpenAI(model_name=model_name)
 
-    def create_few_shot_prompt(self, examples=developer_examples):
+    def create_few_shot_prompt(self, examples=interview_examples):
         example_prompt = ChatPromptTemplate.from_messages([
             ("human", "{input}"),
             ("ai", "{answer}"),
@@ -33,15 +32,21 @@ class InterviewService:
 
     def get_system_prompt(self, type):
         if type == 0:
-            return DEVELOPER_INTERVIEW_SYSTEM_PROMPT
+            return INTERVIEW_SYSTEM_PROMPT
 
-        return DEVELOPER_INTERVIEW_SYSTEM_PROMPT
+        if type == 1:
+            return PROBLEM_INTERVIEW_SYSTEM_PROMPT
+
+        return INTERVIEW_SYSTEM_PROMPT
 
     def get_few_shot_example(self, type):
         if type == 0:
-            return developer_examples
+            return interview_examples
 
-        return developer_examples
+        if type == 1:
+            return problem_examples
+
+        return interview_examples
 
     def get_llm_chain(self, llm, type):
         system_prompt = self.get_system_prompt(type)
