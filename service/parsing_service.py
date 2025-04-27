@@ -58,7 +58,6 @@ class JsonService:
             return
 
         new_responses = self.process_all_keywords(keywords=keywords, type=type)
-        self.save_responses(new_responses, output_path)
         existing_responses = self.load_existing_responses(output_path)
         all_responses = existing_responses + new_responses
         self.save_responses(all_responses, output_path)
