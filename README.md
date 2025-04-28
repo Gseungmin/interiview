@@ -1,6 +1,8 @@
 # 키워드 기반 AI 면접 질문 생성
 ![rag_graph](https://github.com/user-attachments/assets/0753e2fc-78f2-420b-897d-cf67c46228ca)
 
+[문서화](https://jseungmin.notion.site/1e3e2fd91ae280fb99adfa0ac3d4cb06?pvs=4)
+
 ## 서비스 개요
 1. 핵심 키워드를 기반으로 면접 질문을 생성
 2. 실제 대화형 질의 응답을 통해 더 깊은 면접 준비가 가능
