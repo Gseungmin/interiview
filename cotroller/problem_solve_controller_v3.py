@@ -5,16 +5,21 @@ from dotenv import load_dotenv
 from repository.session_repository import get_session_repository
 from service.interview_v2_service import get_interview_v2_service
 from service.json_v2_service import get_json_v2_service
+from service.lang_graph_service import get_lang_graph_service
 from utils.util import MAX_INTERVIEW, PROBLEM_SOLVE_PROMPT_TYPE
 
 load_dotenv()
 
 if __name__ == "__main__":
-    session_repository = get_session_repository()
+    session_repository= get_session_repository()
     interview_service = get_interview_v2_service(session_repository)
     json_service = get_json_v2_service()
 
-    history_file = "../file/chat_problem.json"
+    lang_graph_service = get_lang_graph_service(
+        interview_service=interview_service
+    )
+
+    history_file = "../file/chat_concept.json"
     session_id = str(uuid.uuid4())
     prompt_type = PROBLEM_SOLVE_PROMPT_TYPE
 
@@ -32,11 +37,12 @@ if __name__ == "__main__":
         if user_input.lower() in ("exit", "quit"):
             break
 
-        ai_answer = interview_service.get_ai_response(
+        ai_answer = lang_graph_service.answer(
+            query=user_input,
             session_id=session_id,
-            user_message=user_input,
             prompt_type=prompt_type,
-            time=time
+            time=time,
+            history=conversation_history,
         )
 
         print("AI 응답 : ", ai_answer)

@@ -1,23 +1,22 @@
 from typing import Literal
 
 from fastapi import Depends
+from langchain_core.output_parsers import StrOutputParser
 from langchain_openai import ChatOpenAI
 from langgraph.constants import START, END
 from langgraph.graph import StateGraph
 
 from service.interview_v2_service import InterviewV2Service, get_interview_v2_service
-from service.user_response_service import get_user_response_service, UserResponseService
 from type.app_state import AgentState
-
+from utils.user_response_prompt import user_response_check_prompt
+from utils.util import MORE_PROMPT_TYPE, NONE_PROMPT_TYPE
 
 class LangGraphService:
     def __init__(
         self,
         interview_service: InterviewV2Service = Depends(get_interview_v2_service),
-        user_response_service: UserResponseService = Depends(get_user_response_service),
     ):
         self.interview_service = interview_service
-        self.user_response_service = user_response_service
         self.llm = ChatOpenAI(model_name="o4-mini")
         self.graph = self.build_graph()
 
@@ -26,15 +25,16 @@ class LangGraphService:
 
         builder.add_node("pre_process", self.pre_process)
         builder.add_node("generate", self.generate)
-        builder.add_node("tail", self.generate)
+        builder.add_node("user_response_evaluation", self.user_response_evaluation)
 
         builder.add_edge(START, "pre_process")
-        builder.add_conditional_edges("pre_process", self.progress)
-        builder.add_edge("tail", END)
+        builder.add_conditional_edges("pre_process", self.progress_evaluation)
+        builder.add_edge("user_response_evaluation", "generate")
         builder.add_edge("generate", END)
 
         graph = builder.compile()
-        with open("rag_graph.png", "wb") as f:
+
+        with open("../rag_graph.png", "wb") as f:
             f.write(graph.get_graph().draw_mermaid_png())
 
         return graph
@@ -47,7 +47,7 @@ class LangGraphService:
             state["ai_question"] = ai_answer
         return state
 
-    def progress(self, state: AgentState) -> Literal['generate', 'tail']:
+    def progress_evaluation(self, state: AgentState) -> Literal['generate', 'user_response_evaluation']:
         history = state['history']
 
         history_length = len(history)
@@ -60,7 +60,24 @@ class LangGraphService:
         if history_length >= 6:
             return 'generate'
 
-        return 'tail'
+        return 'user_response_evaluation'
+
+    def user_response_evaluation(self, state: AgentState) -> AgentState:
+        query = state['query']
+        ai_question = state['ai_question']
+
+        chain = user_response_check_prompt | self.llm | StrOutputParser()
+        response = chain.invoke({'query': query, 'ai_question': ai_question})
+
+        if response == "more":
+            state['prompt_type'] = MORE_PROMPT_TYPE
+            return state
+
+        if response == "none":
+            state['prompt_type'] = NONE_PROMPT_TYPE
+            return state
+
+        return state
 
     def generate(self, state: AgentState) -> AgentState:
         session_id = state['session_id']
@@ -101,6 +118,5 @@ class LangGraphService:
 
 def get_lang_graph_service(
     interview_service: InterviewV2Service = Depends(get_interview_v2_service),
-    user_response_service: UserResponseService = Depends(get_user_response_service)
 ) -> LangGraphService:
-    return LangGraphService(interview_service, user_response_service)
+    return LangGraphService(interview_service)
